@@ -1,5 +1,3 @@
-import sys
-sys.path.append("/home/inj/rpi_robot_py_modules/")
 from custom_picamera2 import *
 from tools import *
 

@@ -1,6 +1,3 @@
-import sys
-util_path = "/home/inj/rpi_robot_py_modules/"
-sys.path.append(util_path)
 from tools import * 
 
 import rclpy
