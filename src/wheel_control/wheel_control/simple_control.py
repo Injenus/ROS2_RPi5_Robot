@@ -33,7 +33,14 @@ class SimpleWheelControl(Node):
         msg_dict = json.loads(msg.data)
         self.get_logger().info(f'Получено: {msg_dict}')
 
-        left_w, right_w = msg_dict['l'], msg_dict['r']
+        def clip_val(val):
+            if val < -max_wheel_speed:
+                val = -max_wheel_speed
+            elif val > max_wheel_speed:
+                val = max_wheel_speed
+            return val
+
+        left_w, right_w = clip_val(round(msg_dict['l']*max_wheel_speed)), clip_val(round(msg_dict['r']*max_wheel_speed))
 
         checksum = left_w * 2 + right_w * 4
         data_to_send = f"s,{left_w},{right_w},{checksum},f"        

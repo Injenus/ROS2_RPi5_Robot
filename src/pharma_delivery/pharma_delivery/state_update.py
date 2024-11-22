@@ -82,6 +82,7 @@ class StateUpdater(Node):
                     if 1-self.relativ_thresh <= arrow['center'][0]/arrow['frame'][0]/2 <= 1+self.relativ_thresh:
                         if arrow['type'] == 'forw':
                             self.states['main_state'] = 2
+                            self.states['move_err'] = arrow['frame'][0]/2-arrow['center'][0]
                         else:
                             self.get_logger().info(f'Sudden arrow {arrow["type"]} during {self.states}')
                     else:
@@ -149,7 +150,6 @@ class StateUpdater(Node):
 
         elif self.states['main_state'] == 6:
             self.get_logger().info(f'Wait for grab')
-            time.sleep(1)
             self.states['main_state'] = 7
             self.get_logger().info(f'Return and 180 turn')
 
