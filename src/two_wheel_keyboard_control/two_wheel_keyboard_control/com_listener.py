@@ -7,7 +7,7 @@ import os
 import sys
 from .local_tools import *
 
-max_wheel_speed = 130
+max_wheel_speed = 255
 
 class TwistSubscriber(Node):
 

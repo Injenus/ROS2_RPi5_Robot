@@ -7,7 +7,9 @@ from cv_bridge import CvBridge
 import cv2
 import time
 import os
+import datetime
 
+saving_path = '../../../rpi_robot_py_modules'
 class DualCameraSubscriber(Node):
     def __init__(self):
         super().__init__('dual_camera_subscriber')
@@ -27,9 +29,9 @@ class DualCameraSubscriber(Node):
             1
         )
         
-
-        self.video_path_standart = os.path.join(util_path, 'camera_standart_video.avi')
-        self.video_path_fisheye = os.path.join(util_path, 'camera_fisheye_video.avi')
+        now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+        self.video_path_standart = os.path.join(saving_path, f'camera_standart_video_{now}.avi')
+        self.video_path_fisheye = os.path.join(saving_path, f'camera_fisheye_video_{now}.avi')
         print(self.video_path_standart)
         print(self.video_path_fisheye)
 
