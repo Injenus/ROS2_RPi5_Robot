@@ -29,7 +29,6 @@ class DualCameraSubscriber(Node):
             1
         )
         
-        now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         self.video_path_standart = os.path.join(saving_path, f'camera_standart_video_{now}.avi')
         self.video_path_fisheye = os.path.join(saving_path, f'camera_fisheye_video_{now}.avi')
         print(self.video_path_standart)

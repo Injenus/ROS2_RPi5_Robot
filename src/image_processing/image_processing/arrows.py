@@ -21,7 +21,8 @@ import numpy as np
 class ArrowFinder(Node):
     def __init__(self):
         super().__init__('arrow_finder')
-        self.is_debug = True
+        self.is_debug = bool(self.declare_parameter('is_debug', 0).value)
+
         self.debug_roi = 490, 380, 20, 20 # x,y,w,h
 
         self.bridge = CvBridge()
