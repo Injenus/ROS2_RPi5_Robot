@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'main=urban_traffic:main.main',
+            'state_update=urban_traffic:state_update.main',
+            'do_by_state=urban_traffic:do_by_state.main'
         ],
     },
 )

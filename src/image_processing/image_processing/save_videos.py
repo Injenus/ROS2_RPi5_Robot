@@ -10,6 +10,7 @@ import os
 import datetime
 
 saving_path = '../../../rpi_robot_py_modules'
+now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
 class DualCameraSubscriber(Node):
     def __init__(self):
         super().__init__('dual_camera_subscriber')
