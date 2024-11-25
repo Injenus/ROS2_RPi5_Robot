@@ -42,10 +42,8 @@ class LineFinder(Node):
             area = np.sum(mask == 255)
             return area
         
-
-        frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         lines = {}
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = self.bridge.imgmsg_to_cv2(msg, "mono8")
         _, binary_frame = cv2.threshold(gray_frame, 191, 255, cv2.THRESH_BINARY)
 
         height, width = binary_frame.shape
