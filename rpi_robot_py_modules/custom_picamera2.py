@@ -27,9 +27,9 @@ class Rpi_Camera():
         self.w, self.h = w, h
         self.camera_config = self.cam.create_preview_configuration(main={"format": "RGB888", "size": (self.w, self.h)})
         self.cam.configure(self.camera_config)
-        self.red_gain = 1.25
-        self.blue_gain = 1.5
-        self.gain = 1.0
+        self.red_gain = 1.2
+        self.blue_gain = 1.6
+        self.gain = 4.4
         self.cam.set_controls({
                 "AwbEnable": 0,  # Отключение автоматического баланса белого
                 "ColourGains": (self.red_gain,self.blue_gain),
@@ -97,20 +97,22 @@ class Rpi_Camera():
         return input*(0.01-0.001)/255.0+0.001
 
     def adapt_red_coeff(self, err):
-        delta_val = self.r_pid.calculate(err, time.time()-self.r_time)
-        self.r_time = time.time()
+        # delta_val = self.r_pid.calculate(err, time.time()-self.r_time)
+        # self.r_time = time.time()
+        return err*(0.01-0.001)/255.0+0.001
         return delta_val
     
     def adapt_blue_coeff(self, err):
-        delta_val = self.b_pid.calculate(err, time.time()-self.b_time)
-        self.b_time = time.time()
+        # delta_val = self.b_pid.calculate(err, time.time()-self.b_time)
+        # self.b_time = time.time()
+        return err*(0.01-0.001)/255.0+0.001
         return delta_val
 
     def adapt_expos_coeff(self, err):
-        delta_val = self.g_pid.calculate(err, time.time()-self.g_time)
-        self.g_time = time.time()
+        #delta_val = self.g_pid.calculate(err, time.time()-self.g_time)
+        #self.g_time = time.time()
         #return math.log10(delta_val) if delta_val >= 0 else -math.log10(-delta_val)
-        #return err*(1.0-0.02)/255.0+0.02
+        return err*(1.0-0.02)/255.0+0.02
         return delta_val
 
     def adjust_colour_gains(self, thresh_color=0.1, thresh_expos=1.0, manual_gains=None):
@@ -127,9 +129,9 @@ class Rpi_Camera():
             delta_b = self.g_mean-self.b_mean
             if abs(delta_r) > thresh_color:
                 color_adj_factor = self.adapt_red_coeff(delta_r)
-                self.red_gain += color_adj_factor/10
+                self.red_gain += color_adj_factor
                 self.red_gain = max(self.r_pid.min_val, min(self.red_gain, self.r_pid.max_val))
-                self.r_pid.auto_tune(self.g_mean, self.r_mean)
+                #self.r_pid.auto_tune(self.g_mean, self.r_mean)
                 # if self.r_mean > self.g_mean:
                 #     self.red_gain -= color_adj_factor
                 # else:
@@ -139,9 +141,9 @@ class Rpi_Camera():
 
             if abs(delta_b) > thresh_color:
                 color_adj_factor = self.adapt_blue_coeff(delta_b)
-                self.blue_gain += color_adj_factor/10
+                self.blue_gain += color_adj_factor
                 self.blue_gain = max(self.b_pid.min_val, min(self.blue_gain, self.b_pid.max_val))
-                self.b_pid.auto_tune(self.g_mean, self.b_mean)
+                #self.b_pid.auto_tune(self.g_mean, self.b_mean)
                 # if self.b_mean > self.g_mean:
                 #     self.blue_gain -= color_adj_factor
                 # else:
@@ -156,7 +158,7 @@ class Rpi_Camera():
                 #self.gain = math.log10(self.gain)
                 self.gain += expos_adj_factor
                 self.gain = max(self.g_pid.min_val, min(self.gain, self.g_pid.max_val))
-                self.g_pid.auto_tune(self.target_green, self.gain)
+                #self.g_pid.auto_tune(self.target_green, self.gain)
                 #self.gain = 10**self.gain
                 # if self.g_mean > self.target_green:
                 #     self.gain -= expos_adj_factor

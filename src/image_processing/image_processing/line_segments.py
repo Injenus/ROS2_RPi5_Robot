@@ -44,7 +44,7 @@ class LineFinder(Node):
         
         lines = {}
         gray_frame = self.bridge.imgmsg_to_cv2(msg, "mono8")
-        gray_frame = cv2.blur(gray_frame,(3,3))
+        gray_frame = cv2.blur(gray_frame,(5,5))
         _, binary_frame = cv2.threshold(gray_frame, 191, 255, cv2.THRESH_BINARY)
 
         height, width = binary_frame.shape

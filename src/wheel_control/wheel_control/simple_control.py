@@ -22,16 +22,16 @@ class SimpleWheelControl(Node):
                 baudrate=115200,
                 timeout=1
             )
-            self.get_logger().info("COM-порт успешно открыт")
+            self.get_logger().info("COM port is open")
         except serial.SerialException as e:
-            self.get_logger().error(f"Ошибка при открытии COM-порта: {e}")
+            self.get_logger().error(f"Error openning: {e}")
             self.serial_port = None
 
     
     
     def listener_callback(self, msg):
         msg_dict = json.loads(msg.data)
-        self.get_logger().info(f'Получено: {msg_dict}')
+        self.get_logger().info(f'Received: {msg_dict}')
 
         def clip_val(val):
             if val < -max_wheel_speed:
@@ -48,16 +48,18 @@ class SimpleWheelControl(Node):
         if self.serial_port and self.serial_port.is_open:
             try:
                 self.serial_port.write(data_to_send.encode('utf-8'))
-                self.get_logger().info(f'Отправлено в COM-порт: {data_to_send}')           
+                self.get_logger().info(f'Sended: {data_to_send}')           
             except serial.SerialException as e:
-                self.get_logger().error(f"Ошибка при отправке данных в COM-порт: {e}")    
+                self.get_logger().error(f"Error sending: {e}")
+            except KeyboardInterrupt:
+                self.destroy_node()  
         else:
-            self.get_logger().info(f'Данные {data_to_send} не отправлены, COM-порт не открыт')
+            self.get_logger().info(f'Data {data_to_send} didnt send, COM port is close')
 
     def destroy_node(self):
         if self.serial_port and self.serial_port.is_open:
             self.serial_port.close()
-            self.get_logger().info("COM-порт закрыт")
+            self.get_logger().info("COM port closed")
         super().destroy_node()
 
 def main(args=None):

@@ -14,9 +14,9 @@ class DoByState(Node):
 
         self.publisher = self.create_publisher(String, 'vel/simple', 2)
 
-        self.base_vel = 0.15
-        self.min_vel = 0.1
-        self.max_vel = 0.42
+        self.base_vel = 0.25
+        self.min_vel = 0.2
+        self.max_vel = 0.5
 
         self.turn_90_time = 1.5
         self.stop_time = 0.15
@@ -107,7 +107,7 @@ class DoByState(Node):
     def publish_msg(self):
         json_message = String()
         json_message.data = json.dumps(self.vels)
-        self.publisher.publish(json_message.data)
+        self.publisher.publish(json_message)
         self.get_logger().info(f'Published JSON result: {json_message.data}')
 
     def turn_left(self):
@@ -129,21 +129,21 @@ class DoByState(Node):
         self.vels['r'] = 0
         self.publish_msg()
 
-    def move_backward(self, moving_time=self.backw_time):
+    def move_backward(self):
         self.vels['l'] = -self.min_vel
         self.vels['r'] = -self.min_vel
         self.publish_msg()
-        time.sleep(moving_time)
+        time.sleep(self.backw_time)
         self.stop_immediately()
 
-    def move_one_cell(self, moving_time=self.one_cell_time):
+    def move_one_cell(self):
         self.vels['l'] = self.min_vel
         self.vels['r'] = self.min_vel
         self.publish_msg()
         self.vels['l'] = self.base_vel
         self.vels['r'] = self.base_vel
         self.publish_msg()
-        time.sleep(moving_time)
+        time.sleep(self.one_cell_time)
         self.vels['l'] = self.min_vel
         self.vels['r'] = self.min_vel
         self.publish_msg()
@@ -151,13 +151,7 @@ class DoByState(Node):
 
 
 
-
-
-
-    
-        
-
-def main():
+def main(args=None):
     rclpy.init(args=args)
     state_updater = DoByState()
     rclpy.spin(state_updater)

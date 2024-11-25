@@ -53,10 +53,12 @@ class StateUpdater(Node):
         local_state = None # 0 если работаем с аруко, 1 - если со стрелкой
         if aruco is not None:
             assert isinstance(aruco, dict)
-            local_state = 0
+            if len(aruco) > 0:
+                local_state = 0
         elif arrow is not None: 
             assert isinstance(arrow, dict)
-            local_state = 1
+            if len(arrow) > 0:
+                local_state = 1
         self.states['turn'] = None
         self.states['move_err'] = None
 
@@ -170,7 +172,7 @@ class StateUpdater(Node):
 
         json_message = String()
         json_message.data = json.dumps(self.states)
-        self.publisher.publish(json_message.data)
+        self.publisher.publish(json_message)
         self.get_logger().info(f'Published JSON result: {json_message.data}')
 
 

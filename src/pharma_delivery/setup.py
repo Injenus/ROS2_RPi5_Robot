@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'do_by_state=pharma_delivery:do_by_state.main',
-            'state_update=pharma_delivery:state_update.main'
+            'do_by_state=pharma_delivery.do_by_state:main',
+            'state_update=pharma_delivery.state_update:main',
         ],
     },
 )

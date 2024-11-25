@@ -34,6 +34,7 @@ class DualCameraPublisher(Node):
     def publish_image_camera_fisheye(self):
         self.cam_fisheye.get_frame()
         self.cam_fisheye.adjust_colour_gains()
+        self.get_logger().info(f'gain= {self.cam_fisheye.gain} , red= {self.cam_fisheye.red_gain} , blue= {self.cam_fisheye.blue_gain}')
         if self.cam_fisheye.frame is not None:
             self.cam_fisheye.frame = self.cam_fisheye.draw_gains_roi()
             image_message = self.bridge.cv2_to_imgmsg(cv2.cvtColor(self.cam_fisheye.frame, cv2.COLOR_BGR2GRAY), encoding="mono8")

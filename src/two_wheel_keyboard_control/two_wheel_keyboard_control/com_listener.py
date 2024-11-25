@@ -45,7 +45,7 @@ class TwistSubscriber(Node):
     
     def listener_callback(self, msg):
         self.last_msg_time = time.time() 
-        self.get_logger().info(f'Получено: линейная x: {msg.linear.x}, угловая z: {msg.angular.z}')
+        self.get_logger().info(f'Get: linear x: {msg.linear.x}, angular z: {msg.angular.z}')
 
         left_w, right_w = 0, 0
 
@@ -83,16 +83,16 @@ class TwistSubscriber(Node):
         if self.serial_port and self.serial_port.is_open:
             try:
                 self.serial_port.write(data_to_send.encode('utf-8'))
-                self.get_logger().info(f'Отправлено в COM-порт: {data_to_send}')           
+                self.get_logger().info(f'Sended: {data_to_send}')           
             except serial.SerialException as e:
-                self.get_logger().error(f"Ошибка при отправке данных в COM-порт: {e}")    
+                self.get_logger().error(f"Error sending: {e}")    
         else:
-            self.get_logger().info(f'Данные {data_to_send} не отправлены, COM-порт не открыт')
+            self.get_logger().info(f'Data {data_to_send} didnt send, COM port is close')
 
     def destroy_node(self):
         if self.serial_port and self.serial_port.is_open:
             self.serial_port.close()
-            self.get_logger().info("COM-порт закрыт")
+            self.get_logger().info("COM port closed")
         super().destroy_node()
 
 def main(args=None):

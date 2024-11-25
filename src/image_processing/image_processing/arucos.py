@@ -45,13 +45,13 @@ class ArucoFinder(Node):
                 local_aruco= {}
                 pts = corner[0]  # массив формы (4, 2), содержащий x, y углов
              
-                center_x = np.mean(pts[:, 0])
-                center_y = np.mean(pts[:, 1])
+                center_x = np.mean(pts[:, 0]).item(0)
+                center_y = np.mean(pts[:, 1]).item(0)
                 
                 side_lengths = [np.linalg.norm(pts[j] - pts[(j + 1) % 4]) for j in range(4)]
 
-                local_aruco['num'] = id[i][0].item(0)
-                local_aruco['center'] = (center_x, center_y)
+                local_aruco['num'] = ids[i][0].item(0)
+                local_aruco['center'] = (round(center_x), round(center_y))
                 local_aruco['size'] = round(sum(side_lengths)/4, 2)
                 local_aruco['frame'] = (frame.shape[1], frame.shape[0]) # w, h
                 arucos[i] = local_aruco

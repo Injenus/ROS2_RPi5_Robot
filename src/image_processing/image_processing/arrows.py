@@ -24,7 +24,7 @@ class ArrowFinder(Node):
         self.is_debug = bool(self.declare_parameter('is_debug', 0).value)
         self.is_show = bool(self.declare_parameter('is_show', 0).value)
 
-        self.debug_roi = 490, 380, 20, 20 # x,y,w,h
+        self.debug_roi = 490, 380, 42, 42 # x,y,w,h
 
         self.bridge = CvBridge()
 
@@ -37,18 +37,12 @@ class ArrowFinder(Node):
 
         self.publisher = self.create_publisher(String, 'arrow', 2)
 
-        class Color_Mask():
-            def __init__(self, h_min, h_max, s_min, s_max, v_min, v_max):
-                self.h_min = h_min
-                self.h_max = h_max
-                self.s_min = s_min
-                self.s_max = s_max
-                self.v_min = v_min
-                self.v_max = v_max
-                self.mins = [self.h_min, self.s_min, self.v_min]
-                self.maxs = [self.h_max, self.s_max, self.v_max]
-        self.red_mask = Color_Mask(100,200,100,200,100,200)
-        self.blue_mask = Color_Mask(100,200,100,200,100,200)
+        self.red_mask_0 = Color_Mask_HSV(162,181,180,223,100,255)
+        self.red_mask_1 = Color_Mask_HSV(-1,17,180,223,100,255)
+        self.blue_mask = Color_Mask_HSV(97,120,235,255,97,255)
+
+        # self.red_mask_lab = Color_Mask_LAB(168,189,168,210,207,233)
+        # self.blue_mask_lab = Color_Mask_LAB(96,118,236,255,185,220)
 
 
     def process_image_callback(self, msg):
@@ -62,67 +56,107 @@ class ArrowFinder(Node):
             
             moments = cv2.moments(largest_contour)
             if moments["m00"] != 0:
-                center_x = int(moments["m10"] / moments["m00"])
-                center_y = int(moments["m01"] / moments["m00"])
+                center_x = round(moments["m10"] / moments["m00"])
+                center_y = round(moments["m01"] / moments["m00"])
             else:
-                center_x, center_y = None, None
+                center_x, center_y = -1, -1
             return center_x, center_y, area
         
 
         frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        frame = cv2.blur(frame,(5,5))
         hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        lab_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
 
         if self.is_debug:
             x,y,w,h = self.debug_roi
-            roi = hsv_frame[y:y+h, x:x+w]
-            h_channel, s_channel, v_channel = cv2.split(roi)
 
+            hsv_roi = hsv_frame[y:y+h, x:x+w]
+            h_channel, s_channel, v_channel = cv2.split(hsv_roi)
             h_mean, h_min, h_max = np.mean(h_channel), np.min(h_channel), np.max(h_channel)
             s_mean, s_min, s_max = np.mean(s_channel), np.min(s_channel), np.max(s_channel)
             v_mean, v_min, v_max = np.mean(v_channel), np.min(v_channel), np.max(v_channel)
-
             print(f"H: mean={h_mean:.2f}, min={h_min}, max={h_max}")
             print(f"S: mean={s_mean:.2f}, min={s_min}, max={s_max}")
             print(f"V: mean={v_mean:.2f}, min={v_min}, max={v_max}")
             print()
+
+            lab_roi = lab_frame[y:y+h, x:x+w]
+            l_channel, a_channel, b_channel = cv2.split(lab_roi)
+            l_mean, l_min, l_max = np.mean(l_channel), np.min(l_channel), np.max(l_channel)
+            a_mean, a_min, a_max = np.mean(a_channel), np.min(a_channel), np.max(a_channel)
+            b_mean, b_min, b_max = np.mean(b_channel), np.min(b_channel), np.max(b_channel)
+            print(f"L: mean={l_mean:.2f}, min={l_min}, max={l_max}")
+            print(f"A: mean={a_mean:.2f}, min={a_min}, max={a_max}")
+            print(f"B: mean={b_mean:.2f}, min={b_min}, max={b_max}")
+            print()
+
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),3)
             cv2.imshow('Arrows_Debug', resize(2,frame))
             cv2.waitKey(1)
         else:
+            def morph(mask):
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT,(5,5)))
+                mask = cv2.erode(mask, cv2.getStructuringElement(cv2.MORPH_RECT,(5,5)), iterations=2)
+                mask = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_RECT,(5,5)))
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT,(7,7)))
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT,(5,5)))
+                return mask
             arrow = {}
             
-            red_mask = cv2.inRange(hsv_frame, np.array(self.red_mask.mins), np.array(self.red_mask.maxs))
+            red_mask_0 = cv2.inRange(hsv_frame, np.array(self.red_mask_0.mins), np.array(self.red_mask_0.maxs))
+            red_mask_1 = cv2.inRange(hsv_frame, np.array(self.red_mask_1.mins), np.array(self.red_mask_1.maxs))
+            red_mask = red_mask_0 + red_mask_1
             blue_mask = cv2.inRange(hsv_frame, np.array(self.blue_mask.mins), np.array(self.blue_mask.maxs))
 
+            red_mask = morph(red_mask)
+            blue_mask = morph(blue_mask)
+            
+            if self.is_show:
+                cv2.imshow('red', resize(2, cv2.cvtColor(red_mask, cv2.COLOR_GRAY2BGR)))
+                cv2.imshow('blue', resize(2, cv2.cvtColor(blue_mask, cv2.COLOR_GRAY2BGR)))
+                cv2.waitKey(1)
+                
             red_roi = detect_largest_region(red_mask)
             blue_roi = detect_largest_region(blue_mask)
 
-            if all(red_roi > -1) and all(blue_roi > -1):
-                if abs(red_roi[1] - blue_roi[1])/frame.shape[0] < 0.2: # если по высоте примерно одинаково
-                    arrow['center'] = (round((red_roi[0]+blue_roi[0])/2), round((red_roi[1]+blue_roi[1])/2))
-                    arrow['size'] = ((red_roi[0]-blue_roi[0])**2+(red_roi[1]-blue_roi[1])**2)**0.5
-                    arrow['frame'] = (frame.shape[1], frame.shape[0]) # w, h
-                    if blue_roi[2] > red_roi[2]:
-                        arrow['type'] = 'forw'
-                        if blue_roi[0] < red_roi[0]:
-                            arrow['direc'] = 'l'
-                        elif red_roi[0] < blue_roi[0]:
-                            arrow['direc'] = 'r'
+            if red_roi[0] > -1 and blue_roi[0] > -1:
+                if abs(red_roi[1] - blue_roi[1])/frame.shape[0] < 0.075: # если по высоте примерно одинаково
+                    size = round(((red_roi[0]-blue_roi[0])**2+(red_roi[1]-blue_roi[1])**2)**0.5)
+                    if size/frame.shape[1] < 0.5:
+                        arrow['center'] = (round((red_roi[0]+blue_roi[0])/2), round((red_roi[1]+blue_roi[1])/2))
+                        arrow['size'] = size
+                        arrow['frame'] = (frame.shape[1], frame.shape[0]) # w, h
+                        if blue_roi[2] > red_roi[2]:
+                            arrow['type'] = 'forw'
+                            if blue_roi[0] < red_roi[0]:
+                                arrow['direc'] = 'l'
+                            elif red_roi[0] < blue_roi[0]:
+                                arrow['direc'] = 'r'
+                            else:
+                                arrow['direc'] = None
+                        elif red_roi[2] > blue_roi[2]:
+                            arrow['type'] = 'backw'
+                            if blue_roi[0] < red_roi[0]:
+                                arrow['direc'] = 'r'
+                            elif red_roi[0] < blue_roi[0]:
+                                arrow['direc'] = 'l'
+                            else:
+                                arrow['direc'] = None
                         else:
+                            arrow['type'] = None
                             arrow['direc'] = None
-                    elif red_roi[2] > blue_roi[2]:
-                        arrow['type'] = 'backw'
-                        if blue_roi[0] < red_roi[0]:
-                            arrow['direc'] = 'r'
-                        elif red_roi[0] < blue_roi[0]:
-                            arrow['direc'] = 'l'
-                        else:
-                            arrow['direc'] = None
+
+                        if self.is_show:
+                            cv2.circle(frame, (red_roi[0], red_roi[1]), 7, (0,128,255), thickness=-1)
+                            cv2.circle(frame, (blue_roi[0], blue_roi[1]), 7, (255,128,0), thickness=-1)
+                            cv2.imshow('Arrows', resize(2, frame))
+                            cv2.waitKey(1)
+                        
                     else:
-                        arrow['type'] = None
-                        arrow['direc'] = None
+                        self.get_logger().info(f'Too long! {size/frame.shape[1]}')
                 else:
-                    self.get_logger().info(f'Слишком разная высота! {abs(red_roi[1] - blue_roi[1])}')
+                    self.get_logger().info(f'Too diffrent heights! {abs(red_roi[1] - blue_roi[1])/frame.shape[0]}')
 
                 json_message = String()
                 json_message.data = json.dumps(arrow)
