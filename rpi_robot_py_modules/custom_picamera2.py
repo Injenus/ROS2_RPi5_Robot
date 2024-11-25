@@ -1,6 +1,11 @@
 from picamera2 import Picamera2
 import cv2
 import numpy as np
+import time
+import math
+
+from delta_pid import PID
+
 print('Run cpicam2')
 class Rpi_Camera():
     def __init__(self, id, resolution, name='default_name', hard_resize_koeff=0.0, rotate=180, hard_roi=None, calib_data=None, gains_roi=(0,0,0.1,0.1)):
@@ -24,7 +29,7 @@ class Rpi_Camera():
         self.cam.configure(self.camera_config)
         self.red_gain = 1.25
         self.blue_gain = 1.5
-        self.gain = 15.0
+        self.gain = 1.0
         self.cam.set_controls({
                 "AwbEnable": 0,  # Отключение автоматического баланса белого
                 "ColourGains": (self.red_gain,self.blue_gain),
@@ -56,7 +61,14 @@ class Rpi_Camera():
             self.roi_one = calib_data['roi_one']
             self.roi_zero = calib_data['roi_zero']
 
+        self.r_pid = PID(0.1, 10.0, 0.003, 0.001, 0.0001)
+        self.b_pid = PID(0.1, 10.0, 0.003, 0.001, 0.0001)
+        self.g_pid = PID(0.1, 100, 0.03, 0.01, 0.001)
+        self.r_time, self.b_time, self.g_time = time.time(), time.time(), time.time()
+        self.apply_time = [0.5, time.time()]
+
         self.start()
+
     
     def start(self):
         try:
@@ -84,43 +96,78 @@ class Rpi_Camera():
     def adapt_color_coeff(self, input):
         return input*(0.01-0.001)/255.0+0.001
 
-    def adapt_expos_coeff(self, input):
-        return input*(1.0-0.02)/255.0+0.02
+    def adapt_red_coeff(self, err):
+        delta_val = self.r_pid.calculate(err, time.time()-self.r_time)
+        self.r_time = time.time()
+        return delta_val
+    
+    def adapt_blue_coeff(self, err):
+        delta_val = self.b_pid.calculate(err, time.time()-self.b_time)
+        self.b_time = time.time()
+        return delta_val
 
-    def adjust_colour_gains(self, thresh_color=0.1, thresh_expos=0.1, manual_gains=None):
+    def adapt_expos_coeff(self, err):
+        delta_val = self.g_pid.calculate(err, time.time()-self.g_time)
+        self.g_time = time.time()
+        #return math.log10(delta_val) if delta_val >= 0 else -math.log10(-delta_val)
+        #return err*(1.0-0.02)/255.0+0.02
+        return delta_val
+
+    def adjust_colour_gains(self, thresh_color=0.1, thresh_expos=1.0, manual_gains=None):
+        if time.time() - self.apply_time[1] < self.apply_time[0]:
+            return
+        self.apply_time[1] = time.time()
         if manual_gains is not None:
             assert isinstance(manual_gains, tuple) and len(manual_gains) == 3
             self.red_gain, self.blue_gain, self.gain = manual_gains
         else:
             # Корректируем красный и синий каналы, используя зеленый как эталон
             self.calculate_rgb_means()
-            delta_r = abs(self.r_mean-self.g_mean)
-            delta_b = abs(self.b_mean-self.g_mean)
-            if delta_r > thresh_color:
-                color_adj_factor = self.adapt_color_coeff(delta_r)
-                if self.r_mean > self.g_mean:
-                    self.red_gain -= color_adj_factor
-                else:
-                    self.red_gain += color_adj_factor
+            delta_r = self.g_mean-self.r_mean
+            delta_b = self.g_mean-self.b_mean
+            if abs(delta_r) > thresh_color:
+                color_adj_factor = self.adapt_red_coeff(delta_r)
+                self.red_gain += color_adj_factor/10
+                self.red_gain = max(self.r_pid.min_val, min(self.red_gain, self.r_pid.max_val))
+                self.r_pid.auto_tune(self.g_mean, self.r_mean)
+                # if self.r_mean > self.g_mean:
+                #     self.red_gain -= color_adj_factor
+                # else:
+                #     self.red_gain += color_adj_factor
+            else:
+                self.r_pid.reset()
 
-            if delta_b > thresh_color:
-                color_adj_factor = self.adapt_color_coeff(delta_b)
-                if self.b_mean > self.g_mean:
-                    self.blue_gain -= color_adj_factor
-                else:
-                    self.blue_gain += color_adj_factor
+            if abs(delta_b) > thresh_color:
+                color_adj_factor = self.adapt_blue_coeff(delta_b)
+                self.blue_gain += color_adj_factor/10
+                self.blue_gain = max(self.b_pid.min_val, min(self.blue_gain, self.b_pid.max_val))
+                self.b_pid.auto_tune(self.g_mean, self.b_mean)
+                # if self.b_mean > self.g_mean:
+                #     self.blue_gain -= color_adj_factor
+                # else:
+                #     self.blue_gain += color_adj_factor
+            else:
+                self.b_pid.reset()
 
-            delta_green = abs(self.g_mean-self.target_green)
-            if delta_green > thresh_expos:
+            delta_green = self.target_green-self.g_mean
+            print(self.g_mean, self.gain)
+            if abs(delta_green) > thresh_expos:
                 expos_adj_factor = self.adapt_expos_coeff(delta_green)
-                if self.g_mean > self.target_green:
-                    self.gain -= expos_adj_factor
-                    if self.gain < 0.1:
-                        self.gain = 0.1
-                else:
-                    self.gain += expos_adj_factor
-                    if self.gain > 75:
-                        self.gain = 75
+                #self.gain = math.log10(self.gain)
+                self.gain += expos_adj_factor
+                self.gain = max(self.g_pid.min_val, min(self.gain, self.g_pid.max_val))
+                self.g_pid.auto_tune(self.target_green, self.gain)
+                #self.gain = 10**self.gain
+                # if self.g_mean > self.target_green:
+                #     self.gain -= expos_adj_factor
+                #     if self.gain < 0.1:
+                #         self.gain = 0.1
+                # else:
+                #     self.gain += expos_adj_factor
+                #     if self.gain > 75:
+                #         self.gain = 75
+            else:
+                self.g_pid.reset()
         
         self.set_white_balance()
 

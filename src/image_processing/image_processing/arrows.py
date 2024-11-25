@@ -22,6 +22,7 @@ class ArrowFinder(Node):
     def __init__(self):
         super().__init__('arrow_finder')
         self.is_debug = bool(self.declare_parameter('is_debug', 0).value)
+        self.is_show = bool(self.declare_parameter('is_show', 0).value)
 
         self.debug_roi = 490, 380, 20, 20 # x,y,w,h
 
@@ -84,7 +85,7 @@ class ArrowFinder(Node):
             print(f"S: mean={s_mean:.2f}, min={s_min}, max={s_max}")
             print(f"V: mean={v_mean:.2f}, min={v_min}, max={v_max}")
             print()
-            cv2.rectangle(frame,(x,y),(w,h),(0,255,0),3)
+            cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),3)
             cv2.imshow('Arrows_Debug', resize(2,frame))
             cv2.waitKey(1)
         else:

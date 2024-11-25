@@ -4,8 +4,8 @@ from geometry_msgs.msg import Twist
 import keyboard
 from .local_tools import *
 
-base_linear_speed = 1.0/3
-base_angular_speed = 1.0/3
+base_linear_speed = 0.15
+base_angular_speed = 0.15
 
 class KeyboardControl(Node):
     def __init__(self):
