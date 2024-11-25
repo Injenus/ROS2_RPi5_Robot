@@ -32,7 +32,7 @@ class LineFinder(Node):
             1
         )
 
-        self.publisher = self.create_publisher(String, 'lines', 2)
+        self.publisher = self.create_publisher(String, 'lines', 1)
 
     def process_image_callback(self, msg):
         
