@@ -48,8 +48,8 @@ class LineFinder(Node):
 
         height, width = binary_frame.shape
 
-        black_start = int(height * (1-0.2))
-        binary_frame[black_start:, :] = 0 
+        binary_frame[round(height * (1-0.2)):, :] = 0
+        binary_frame[:round(height * (0.5)), :] = 0
         binary_frame[0, :] = 0  # Верхняя граница
         binary_frame[-1, :] = 0  # Нижняя граница
         binary_frame[:, 0] = 0  # Левая граница
