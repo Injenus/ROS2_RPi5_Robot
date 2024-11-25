@@ -102,7 +102,7 @@ class ArrowFinder(Node):
                 mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT,(7,7)))
                 mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT,(5,5)))
                 return mask
-            arrow = {}
+            arrows = {}
             
             red_mask_0 = cv2.inRange(hsv_frame, np.array(self.red_mask_0.mins), np.array(self.red_mask_0.maxs))
             red_mask_1 = cv2.inRange(hsv_frame, np.array(self.red_mask_1.mins), np.array(self.red_mask_1.maxs))
@@ -124,6 +124,7 @@ class ArrowFinder(Node):
                 if abs(red_roi[1] - blue_roi[1])/frame.shape[0] < 0.075: # если по высоте примерно одинаково
                     size = round(((red_roi[0]-blue_roi[0])**2+(red_roi[1]-blue_roi[1])**2)**0.5)
                     if size/frame.shape[1] < 0.5:
+                        arrow = {}
                         arrow['center'] = (round((red_roi[0]+blue_roi[0])/2), round((red_roi[1]+blue_roi[1])/2))
                         arrow['size'] = size
                         arrow['frame'] = (frame.shape[1], frame.shape[0]) # w, h
@@ -147,9 +148,12 @@ class ArrowFinder(Node):
                             arrow['type'] = None
                             arrow['direc'] = None
 
+                        arrows[0] = arrow
+
                         if self.is_show:
-                            cv2.circle(frame, (red_roi[0], red_roi[1]), 7, (0,128,255), thickness=-1)
-                            cv2.circle(frame, (blue_roi[0], blue_roi[1]), 7, (255,128,0), thickness=-1)
+                            cv2.circle(frame, (red_roi[0], red_roi[1]), 9, (0,160,255), thickness=-1)
+                            cv2.circle(frame, (blue_roi[0], blue_roi[1]), 9, (255,160,0), thickness=-1)
+                            cv2.circle(frame, arrow['center'], 9, (0,255,0), thickness=-1)
                             cv2.imshow('Arrows', resize(2, frame))
                             cv2.waitKey(1)
                         
@@ -158,8 +162,9 @@ class ArrowFinder(Node):
                 else:
                     self.get_logger().info(f'Too diffrent heights! {abs(red_roi[1] - blue_roi[1])/frame.shape[0]}')
 
+
                 json_message = String()
-                json_message.data = json.dumps(arrow)
+                json_message.data = json.dumps(arrows)
                 self.publisher.publish(json_message)
                 self.get_logger().info(f'Published arrows: {json_message.data}')
             else:

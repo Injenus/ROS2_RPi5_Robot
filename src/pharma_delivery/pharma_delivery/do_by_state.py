@@ -6,6 +6,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 import json
 import time
+import random
 
 class DoByState(Node):
     def __init__(self):
@@ -22,15 +23,16 @@ class DoByState(Node):
         self.stop_time = 0.15
         self.backw_time = 1.5
         self.one_cell_time = 2
+        self.dance_time = 0.05
 
         self.turn_flag = False
         self.stop_phrama_flag = True
         self.reverse_flag = True
         self.finish_flag = True
 
-        self.vels={'l': 0, 'r': 0}
+        self.vels = {'l': 0, 'r': 0}
 
-        self.pid = PID(self.min_vel, self.max_vel, 1.0, 0.0, 0.0)
+        self.pid = PID(0.001, 0.1, 1.0, 0.0001, 0.00001)
         self.init_t = time.time()
 
     def action(self, msg):
@@ -47,11 +49,16 @@ class DoByState(Node):
             self.vels['r'] = self.min_vel
 
         elif self.state_data['main_state'] == 2:
-            self.turn_flag = True
-            correct_val = self.pid.calculate(self.state_data['move_err'], self.dt) # если ошибка больше 0 то надо ускорить правое, замедлить левое
-            self.check_init_vels()
-            self.vels['l'] -= correct_val
-            self.vels['r'] += correct_val
+            if self.state_data['move_err']:
+                self.turn_flag = True
+                correct_val = self.pid.calculate(self.state_data['move_err'], self.dt) # если ошибка больше 0 то надо ускорить правое, замедлить левое
+                self.check_init_vels()
+                self.vels['l'] -= correct_val
+                self.vels['r'] += correct_val
+            else:
+                #self.stop_immediately()
+                #self.dance()
+                pass
 
         elif self.state_data['main_state'] == 3:
             if self.turn_flag:
@@ -62,15 +69,23 @@ class DoByState(Node):
                     self.turn_left()
                 elif self.state_data['turn'] == 'r':
                     self.turn_right()
-                
+                else:
+                    #self.stop_immediately()
+                    #self.dance()
+                    pass
+
                 time.sleep(self.stop_time)
                 self.turn_flag = False # поворот только после движения к стрелке и один раз
 
         elif self.state_data['main_state'] == 4 or self.state_data['main_state'] == 5:
-            correct_val = self.pid.calculate(self.state_data['move_err'], self.dt)
-            self.check_init_vels()
-            self.vels['l'] -= correct_val
-            self.vels['r'] += correct_val
+            if self.state_data['move_err']:
+                correct_val = self.pid.calculate(self.state_data['move_err'], self.dt)
+                self.check_init_vels()
+                self.vels['l'] -= correct_val
+                self.vels['r'] += correct_val
+            else:
+                #self.dance()
+                pass
 
         elif self.state_data['main_state'] == 6:
             if self.stop_phrama_flag:
@@ -148,6 +163,18 @@ class DoByState(Node):
         self.vels['r'] = self.min_vel
         self.publish_msg()
         self.stop_immediately()
+
+    def dance(self):
+        for i in range(random.randint(1, 5)):
+            if i % 2:
+                self.vels['l'] = self.base_vel*1.5
+                self.vels['r'] = -self.base_vel*1.5
+            else:
+                self.vels['l'] = -self.base_vel*1.5
+                self.vels['r'] = self.base_vel*1.5
+            time.sleep(self.dance_time)
+            #self.stop_immediately()
+
 
 
 

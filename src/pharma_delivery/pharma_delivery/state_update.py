@@ -29,13 +29,13 @@ class StateUpdater(Node):
         self.relativ_thresh = 0.25
         self.backw_arrow_num = 6
         self.backw_counter = 0
-        self.stop_size_arrow = 0.42
+        self.stop_size_arrow = 0.33
         self.stop_arrow_thresh = 0.1
-        self.stop_size_aruco = 0.42
+        self.stop_size_aruco = 0.5
 
         
         self.create_subscription(String, 'arucos', self.aruco_callback, 2)
-        self.create_subscription(String, 'arrows', self.arrow_callback, 2)
+        self.create_subscription(String, 'arrow', self.arrow_callback, 2)
 
         self.publisher = self.create_publisher(String, 'pharma_state', 2)
 
@@ -57,8 +57,11 @@ class StateUpdater(Node):
                 local_state = 0
         elif arrow is not None: 
             assert isinstance(arrow, dict)
-            if len(arrow) > 0:
+            if len(arrow) == 1:
+                arrow = arrow['0']
                 local_state = 1
+            elif len(arrow) > 1:
+                self.get_logger().info(f'Too many arrows {len(arrow)} during {self.states}')
         self.states['turn'] = None
         self.states['move_err'] = None
 
@@ -67,9 +70,9 @@ class StateUpdater(Node):
                 if len(aruco) > 1:
                     self.get_logger().info(f'Too many arucos {len(aruco)} during {self.states}')
                 else:
-                    aruco = aruco[0]
+                    aruco = aruco['0']
                     self.aruco_number = aruco['num']
-                    if 1-self.relativ_thresh <= aruco['center'][0]/aruco['frame'][0]/2 <= 1+self.relativ_thresh:
+                    if 1-self.relativ_thresh <= aruco['center'][0]/(aruco['frame'][0]/2) <= 1+self.relativ_thresh:
                         self.states['main_state'] = 1
                     else:
                         pass
@@ -78,17 +81,15 @@ class StateUpdater(Node):
         
         elif self.states['main_state'] == 1:
             if local_state == 1:
-                if len(arrow) > 1:
-                    self.get_logger().info(f'Too many arrows {len(arrow)} during {self.states}')
-                else:
-                    if 1-self.relativ_thresh <= arrow['center'][0]/arrow['frame'][0]/2 <= 1+self.relativ_thresh:
-                        if arrow['type'] == 'forw':
-                            self.states['main_state'] = 2
-                            self.states['move_err'] = arrow['frame'][0]/2-arrow['center'][0]
-                        else:
-                            self.get_logger().info(f'Sudden arrow {arrow["type"]} during {self.states}')
+                if 1-self.relativ_thresh <= arrow['center'][0]/(arrow['frame'][0]/2) <= 1+self.relativ_thresh:
+                    if arrow['type'] == 'forw':
+                        self.states['main_state'] = 2
+                        self.states['move_err'] = arrow['frame'][0]/2-arrow['center'][0]
+                        print(self.states['move_err'])
                     else:
-                        pass
+                        self.get_logger().info(f'Sudden arrow {arrow["type"]} during {self.states}')
+                else:
+                    pass
 
         elif self.states['main_state'] == 2:
             if local_state == 1:
@@ -97,13 +98,14 @@ class StateUpdater(Node):
                         self.states['main_state'] = 3
                         self.states['turn'] = arrow['direc']
                         self.states['move_err'] = 0
-                        if self.state['arrow_state'] == 1:
+                        if self.states['arrow_state'] == 1:
                             self.backw_counter += 1
                     else:
                         self.get_logger().info(f'Moving to arrow..')
                         self.states['move_err'] = arrow['frame'][0]/2-arrow['center'][0]
                 else:
                     self.get_logger().info(f'Ill-timed arrow')
+
 
         elif self.states['main_state'] == 3:
             if self.backw_counter == self.backw_arrow_num:

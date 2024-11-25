@@ -29,6 +29,7 @@ class PID():
         self.prev_err = self.error
 
         self.value = prop*self.p_k+self.integral*self.i_k+diff*self.d_k
+        self.value = max(self.min_val, min(abs(self.value), self.max_val))*(self.value/abs(self.value))
         return self.value
 
     def reset(self):

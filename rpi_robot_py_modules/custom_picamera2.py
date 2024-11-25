@@ -61,9 +61,9 @@ class Rpi_Camera():
             self.roi_one = calib_data['roi_one']
             self.roi_zero = calib_data['roi_zero']
 
-        self.r_pid = PID(0.1, 10.0, 0.003, 0.001, 0.0001)
-        self.b_pid = PID(0.1, 10.0, 0.003, 0.001, 0.0001)
-        self.g_pid = PID(0.1, 100, 0.03, 0.01, 0.001)
+        self.r_pid = PID(0.01, 1.0, 0.003, 0.001, 0.0001)
+        self.b_pid = PID(0.01, 1.0, 0.003, 0.001, 0.0001)
+        self.g_pid = PID(0.01, 10, 0.03, 0.01, 0.001)
         self.r_time, self.b_time, self.g_time = time.time(), time.time(), time.time()
         self.apply_time = [0.5, time.time()]
 
