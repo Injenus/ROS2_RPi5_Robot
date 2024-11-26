@@ -5,6 +5,12 @@ def resize(koeff, frame):
     assert frame is not None
     return cv2.resize(frame, (round(frame.shape[1]/koeff), round(frame.shape[0]/koeff)))
 
+def calculate_area_manual(binary_image, contour):
+    mask = np.zeros_like(binary_image, dtype=np.uint8)
+    cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
+    area = np.sum(mask == 255)
+    return area
+
 
 class Color_Mask_HSV():
     def __init__(self, h_min, h_max, s_min, s_max, v_min, v_max):

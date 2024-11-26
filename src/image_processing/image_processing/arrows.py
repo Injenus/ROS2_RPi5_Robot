@@ -52,7 +52,7 @@ class ArrowFinder(Node):
                 return -1, -1, -1
             
             largest_contour = max(contours, key=cv2.contourArea)
-            area = cv2.contourArea(largest_contour)
+            area = calculate_area_manual(mask, largest_contour)
             
             moments = cv2.moments(largest_contour)
             if moments["m00"] != 0:
@@ -120,7 +120,7 @@ class ArrowFinder(Node):
             red_roi = detect_largest_region(red_mask)
             blue_roi = detect_largest_region(blue_mask)
 
-            if red_roi[0] > -1 and blue_roi[0] > -1:
+            if red_roi[2] > 36 and blue_roi[2] > 36:
                 if abs(red_roi[1] - blue_roi[1])/frame.shape[0] < 0.075: # если по высоте примерно одинаково
                     size = round(((red_roi[0]-blue_roi[0])**2+(red_roi[1]-blue_roi[1])**2)**0.5)
                     if size/frame.shape[1] < 0.5:
@@ -168,7 +168,7 @@ class ArrowFinder(Node):
                 self.publisher.publish(json_message)
                 self.get_logger().info(f'Published arrows: {json_message.data}')
             else:
-                pass
+                self.get_loger().info(f"Too small areas: red={red_roi[2]}, blue={blue_roi}")
 
            
 

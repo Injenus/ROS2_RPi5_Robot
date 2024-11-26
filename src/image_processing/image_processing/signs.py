@@ -1,7 +1,10 @@
 """
 формат сообщений:
     для каждого знака:
-        center:
+        center: x,y
+        size: diameter pxls
+        color: blue/red
+        type: l,r,forw,stop
 """
 from tools import * 
 

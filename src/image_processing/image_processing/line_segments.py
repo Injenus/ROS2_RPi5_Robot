@@ -34,14 +34,7 @@ class LineFinder(Node):
 
         self.publisher = self.create_publisher(String, 'lines', 1)
 
-    def process_image_callback(self, msg):
-        
-        def calculate_area_manual(binary_image, contour):
-            mask = np.zeros_like(binary_image, dtype=np.uint8)
-            cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
-            area = np.sum(mask == 255)
-            return area
-        
+    def process_image_callback(self, msg):        
         lines = {}
         gray_frame = self.bridge.imgmsg_to_cv2(msg, "mono8")
         gray_frame = cv2.blur(gray_frame,(5,5))
