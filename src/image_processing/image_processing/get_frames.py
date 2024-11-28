@@ -27,6 +27,7 @@ class DualCameraPublisher(Node):
         self.cam_standart.get_frame()
         self.cam_standart.adjust_colour_gains(manual_gains=(self.cam_fisheye.red_gain, self.cam_fisheye.blue_gain, self.cam_fisheye.gain))
         if self.cam_standart.frame is not None:
+            self.cam_standart.frame = self.cam_standart.frame[50:, :, :]
             image_message = self.bridge.cv2_to_imgmsg(self.cam_standart.frame, encoding="bgr8")
             self.publisher_camera_standart.publish(image_message)
             self.get_logger().info('Published image from Camera_Standart')

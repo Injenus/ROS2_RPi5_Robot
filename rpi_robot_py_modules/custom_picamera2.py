@@ -27,20 +27,20 @@ class Rpi_Camera():
         self.w, self.h = w, h
         self.camera_config = self.cam.create_preview_configuration(main={"format": "RGB888", "size": (self.w, self.h)})
         self.cam.configure(self.camera_config)
-        self.red_gain = 1.2
-        self.blue_gain = 1.6
-        self.gain = 4.4
+        self.red_gain = 1.49
+        self.blue_gain = 1.22
+        self.gain = 1.22
         self.cam.set_controls({
                 "AwbEnable": 0,  # Отключение автоматического баланса белого
                 "ColourGains": (self.red_gain,self.blue_gain),
                 "AeEnable": 0,  # Отключение автоматической экспозиции
                 "AnalogueGain": self.gain,
-                "ExposureTime": 33000  # Установка выдержки в микросекундах (например, 20000 = 20мс)
+                "ExposureTime": 5000  # Установка выдержки в микросекундах (например, 20000 = 20мс)
             })
         if self.hard_roi is not None:
             self.cam.set_controls({"ScalerCrop": self.hard_roi})
         self.name = name
-        self.target_green = 160
+        self.target_green = 190
         self.rotate = rotate
         self.frame = None
         self.undist_frame = None
@@ -61,9 +61,9 @@ class Rpi_Camera():
             self.roi_one = calib_data['roi_one']
             self.roi_zero = calib_data['roi_zero']
 
-        self.r_pid = PID(0.01, 1.0, 0.003, 0.001, 0.0001)
-        self.b_pid = PID(0.01, 1.0, 0.003, 0.001, 0.0001)
-        self.g_pid = PID(0.01, 10, 0.03, 0.01, 0.001)
+        self.r_pid = PID(0.001, 1.0, 0.003, 0.001, 0.0001)
+        self.b_pid = PID(0.001, 1.0, 0.003, 0.001, 0.0001)
+        self.g_pid = PID(0.001, 10, 0.03, 0.01, 0.001)
         self.r_time, self.b_time, self.g_time = time.time(), time.time(), time.time()
         self.apply_time = [0.5, time.time()]
 
@@ -128,46 +128,46 @@ class Rpi_Camera():
             delta_r = self.g_mean-self.r_mean
             delta_b = self.g_mean-self.b_mean
             if abs(delta_r) > thresh_color:
-                color_adj_factor = self.adapt_red_coeff(delta_r)
+                color_adj_factor = self.adapt_red_coeff(abs(delta_r))
                 self.red_gain += color_adj_factor
-                self.red_gain = max(self.r_pid.min_val, min(self.red_gain, self.r_pid.max_val))
+                #self.red_gain = max(self.r_pid.min_val, min(self.red_gain, self.r_pid.max_val))
                 #self.r_pid.auto_tune(self.g_mean, self.r_mean)
-                # if self.r_mean > self.g_mean:
-                #     self.red_gain -= color_adj_factor
-                # else:
-                #     self.red_gain += color_adj_factor
+                if self.r_mean > self.g_mean:
+                    self.red_gain -= color_adj_factor
+                else:
+                    self.red_gain += color_adj_factor
             else:
                 self.r_pid.reset()
 
             if abs(delta_b) > thresh_color:
-                color_adj_factor = self.adapt_blue_coeff(delta_b)
-                self.blue_gain += color_adj_factor
-                self.blue_gain = max(self.b_pid.min_val, min(self.blue_gain, self.b_pid.max_val))
+                color_adj_factor = self.adapt_blue_coeff(abs(delta_b))
+                #self.blue_gain += color_adj_factor
+                #self.blue_gain = max(self.b_pid.min_val, min(self.blue_gain, self.b_pid.max_val))
                 #self.b_pid.auto_tune(self.g_mean, self.b_mean)
-                # if self.b_mean > self.g_mean:
-                #     self.blue_gain -= color_adj_factor
-                # else:
-                #     self.blue_gain += color_adj_factor
+                if self.b_mean > self.g_mean:
+                    self.blue_gain -= color_adj_factor
+                else:
+                    self.blue_gain += color_adj_factor
             else:
                 self.b_pid.reset()
 
             delta_green = self.target_green-self.g_mean
             print(self.g_mean, self.gain)
             if abs(delta_green) > thresh_expos:
-                expos_adj_factor = self.adapt_expos_coeff(delta_green)
+                expos_adj_factor = self.adapt_expos_coeff(abs(delta_green))
                 #self.gain = math.log10(self.gain)
-                self.gain += expos_adj_factor
-                self.gain = max(self.g_pid.min_val, min(self.gain, self.g_pid.max_val))
+                #self.gain += expos_adj_factor
+                #self.gain = max(self.g_pid.min_val, min(self.gain, self.g_pid.max_val))
                 #self.g_pid.auto_tune(self.target_green, self.gain)
                 #self.gain = 10**self.gain
-                # if self.g_mean > self.target_green:
-                #     self.gain -= expos_adj_factor
-                #     if self.gain < 0.1:
-                #         self.gain = 0.1
-                # else:
-                #     self.gain += expos_adj_factor
-                #     if self.gain > 75:
-                #         self.gain = 75
+                if self.g_mean > self.target_green:
+                    self.gain -= expos_adj_factor
+                    if self.gain < 0.01:
+                        self.gain = 0.01
+                else:
+                    self.gain += expos_adj_factor
+                    if self.gain > 150:
+                        self.gain = 150
             else:
                 self.g_pid.reset()
         

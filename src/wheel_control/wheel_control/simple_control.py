@@ -52,6 +52,8 @@ class SimpleWheelControl(Node):
             except serial.SerialException as e:
                 self.get_logger().error(f"Error sending: {e}")
             except KeyboardInterrupt:
+                data_to_send = f"s,{0},{0},{0},f"        
+                self.serial_port.write(data_to_send.encode('utf-8'))
                 self.destroy_node()  
         else:
             self.get_logger().info(f'Data {data_to_send} didnt send, COM port is close')

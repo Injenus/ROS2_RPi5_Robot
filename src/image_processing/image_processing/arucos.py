@@ -51,10 +51,16 @@ class ArucoFinder(Node):
                 side_lengths = [np.linalg.norm(pts[j] - pts[(j + 1) % 4]) for j in range(4)]
 
                 local_aruco['num'] = ids[i][0].item(0)
-                local_aruco['center'] = (round(center_x), round(center_y))
+                local_aruco['center'] = (round(max(center_x-170, 50)), round(center_y))
                 local_aruco['size'] = round(sum(side_lengths)/4, 2)
                 local_aruco['frame'] = (frame.shape[1], frame.shape[0]) # w, h
                 arucos[i] = local_aruco
+
+                if ids[i][0].item(0) == 5:
+                    cv2.circle(frame, (round(center_x), round(center_y)), 10, (0,0,255), -1)
+                    cv2.imshow('aruco', resize(3,frame))
+                    cv2.putText(frame, str(round(local_aruco['size']/local_aruco['frame'][0], 2)), local_aruco['center'],cv2.FONT_HERSHEY_SIMPLEX, 3, (0,255,0), 2)
+                    cv2.waitKey(1)
 
         json_message = String()
         json_message.data = json.dumps(arucos)
@@ -66,6 +72,7 @@ def main(args=None):
     image_processor = ArucoFinder()
     rclpy.spin(image_processor)
     image_processor.destroy_node()
+    cv2.destroyAllWindows()
     rclpy.shutdown()
 
 if __name__ == '__main__':

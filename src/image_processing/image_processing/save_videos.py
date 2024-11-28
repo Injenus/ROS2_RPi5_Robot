@@ -7,9 +7,11 @@ from cv_bridge import CvBridge
 import cv2
 import time
 import os
-import datetime
+from datetime import datetime
 
-saving_path = '../../../rpi_robot_py_modules'
+saving_path = '../../rpi_robot_py_modules'
+#saving_path = 'rpi_robot_py_modules'
+os.makedirs(saving_path, exist_ok=True)
 now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
 class DualCameraSubscriber(Node):
     def __init__(self):
